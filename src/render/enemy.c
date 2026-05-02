@@ -1,12 +1,14 @@
 #include "../includes/cub3d.h"
 
-#define ENEMY_HIT_RADIUS 14.0f
+#define ENEMY_HIT_RADIUS 28.0f
 #define FOV (PI / 3.0f)
 #define ENEMY_SPEED 1.4f
 #define ENEMY_RADIUS 8
 #define ENEMY_STOP_DIST 28.0f
 #define ENEMY_ANIM_MS 140
 #define ENEMY_SCALE 0.7f
+#define ENEMY_TOUCH_DAMAGE 5
+#define ENEMY_DAMAGE_COOLDOWN_MS 300
 
 static float	normalize_angle(float angle)
 {
@@ -96,13 +98,32 @@ static void	move_enemy(t_game *game, t_enemy *enemy)
 void	update_enemies(t_game *game)
 {
 	int	i;
+	float	dx;
+	float	dy;
+	long	now;
+	int	player_touched;
 
 	i = 0;
+	player_touched = 0;
+	now = current_time_ms();
 	while (i < game->enemy_count)
 	{
 		if (game->enemies[i].active)
+		{
 			move_enemy(game, &game->enemies[i]);
+			dx = game->player->x - game->enemies[i].x;
+			dy = game->player->y - game->enemies[i].y;
+			if (dx * dx + dy * dy <= ENEMY_HIT_RADIUS * ENEMY_HIT_RADIUS)
+				player_touched = 1;
+		}
 		i++;
+	}
+	if (player_touched && now - game->last_damage_time >= ENEMY_DAMAGE_COOLDOWN_MS)
+	{
+		game->life -= ENEMY_TOUCH_DAMAGE;
+		if (game->life < 0)
+			game->life = 0;
+		game->last_damage_time = now;
 	}
 }
 

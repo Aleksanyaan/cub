@@ -45,6 +45,8 @@ void	init_struct(t_game *game)
 	game->bullet_hole_index = 0;
 	game->enemy_count = 0;
 	game->door_count = 0;
+	game->life = 100;
+	game->last_damage_time = 0;
 	game->bpp = 0;
 	game->size_line = 0;
 	game->endian = 0;

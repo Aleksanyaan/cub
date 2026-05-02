@@ -147,6 +147,8 @@ typedef struct s_game
 	t_enemy		enemies[ENEMY_MAX];
 	int			enemy_count;	t_door		doors[DOOR_MAX];
 	int			door_count;	float		wall_dist[WIDTH];
+	int			life;
+	long		last_damage_time;
 }				t_game;
 
 typedef enum direction

@@ -289,14 +289,8 @@ void	draw_walls(t_game *game, int x, float height, t_direction direction, float 
 			char cell = 0;
 			if (map_y >= 0 && game->config.map[map_y] && map_x >= 0 && game->config.map[map_y][map_x])
 				cell = game->config.map[map_y][map_x];
-			if (cell == 'D')
-			{
-				t_door *door = get_door_at_map_pos(map_x, map_y, game);
-				if (door && !door->open && game->door_texture.img)
-					color = get_texture_pixel(game->door_texture, x_coefficient, y_coefficient);
-				else if (!door || door->open)
-					color = (t_color){100, 100, 100};
-			}
+			if (cell == 'D' && game->door_texture.img)
+				color = get_texture_pixel(game->door_texture, x_coefficient, y_coefficient);
 			else if (direction == North)
 				color = get_texture_pixel(game->north_texture, x_coefficient, y_coefficient);
 			else if (direction == South)
@@ -416,7 +410,7 @@ static int	bullet_hole_size(float dist)
 {
 	int	size;
 
-	size = (int)(90 / dist);
+	size = (int)(60 / dist);
 	if (size < 1)
 		size = 1;
 	if (size > 14)
@@ -483,6 +477,14 @@ void	draw_bullet_holes(t_game *game)
 	}
 }
 
+static void	draw_life(t_game *game)
+{
+	char	life_text[32];
+
+	snprintf(life_text, sizeof(life_text), "LIFE: %d", game->life);
+	mlx_string_put(game->mlx, game->win, 20, 20, 0x00FF4444, life_text);
+}
+
 int	draw_loop(t_game *game)
 {
 	static long	last_time = 0;
@@ -513,5 +515,6 @@ int	draw_loop(t_game *game)
 	draw_minimap(game);
 	draw_fps(game, &last_time, &frames);
 	mlx_put_image_to_window(game->mlx, game->win, game->img, 0, 0);
+	draw_life(game);
 	return (0);
 }
