@@ -12,6 +12,25 @@
 
 #include "../includes/cub3d.h"
 
+static t_color	get_texture_pixel_by_pos(t_texture texture, int x, int y)
+{
+	char	*px;
+
+	if (texture.width <= 0 || texture.height <= 0 || !texture.addr)
+		return ((t_color){0, 0, 0});
+	if (x < 0)
+		x = 0;
+	if (x >= texture.width)
+		x = texture.width - 1;
+	if (y < 0)
+		y = 0;
+	if (y >= texture.height)
+		y = texture.height - 1;
+	px = texture.addr + (y * texture.line_len + x * (texture.bpp / 8));
+	return ((t_color){(unsigned char)px[2], (unsigned char)px[1],
+		(unsigned char)px[0]});
+}
+
 void	put_pixel(int x, int y, t_color color, t_game *game)
 {
 	int	index;
@@ -22,98 +41,35 @@ void	put_pixel(int x, int y, t_color color, t_game *game)
 	game->data[index] = color.blue;
 	game->data[index + 1] = color.green;
 	game->data[index + 2] = color.red;
-}
+		static long	last_time = 0;
+		static int	frames = 0;
+		float		fraction;
+		float		start_x;
+		int			i;
 
-void	draw_square(int x, int y, int size, t_color color, t_game *game)
-{
-	int	i;
-
-	i = 0;
-	while (i < size)
-	{
-		put_pixel(x + i, y, color, game);
-		i++;
-	}
-	i = 0;
-	while (i < size)
-	{
-		put_pixel(x, y + i, color, game);
-		i++;
-	}
-	i = 0;
-	while (i < size)
-	{
-		put_pixel(x + size, y + i, color, game);
-		i++;
-	}
-	i = 0;
-	while (i < size)
-	{
-		put_pixel(x + i, y + size, color, game);
-		i++;
-	}
-}
-
-void	draw_map(t_game *game)
-{
-	char	**map;
-	t_color		color;
-	int		y;
-	int		x;
-
-	map = game->config.map;
-	color = (t_color){0, 0, 255};
-	x = 0;
-	y = 0;
-	while (map[y])
-	{
-		x = 0;
-		while (map[y][x])
+		ft_bzero(game->data, HEIGHT * game->size_line);
+		move_player(game->player, game);
+		update_enemies(game);
+		update_shoot(game->player, game);
+		render_floor_and_ceiling(game);
+		fraction = PI / 3 / WIDTH;
+		start_x = game->player->angle - PI / 6;
+		i = 0;
+		while (i < WIDTH)
 		{
-			if (map[y][x] == '1')
-				draw_square(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, color,
-					game);
-			x++;
+			draw_line(game->player, game, start_x, i);
+			start_x += fraction;
+			i++;
 		}
-		y++;
-	}
-}
-
-int	calculate_quarter(float angle)
-{
-	if (angle < 0)
-		angle = 2 * PI + angle;
-	else if (angle >= 2 * PI)
-		angle = angle - 2 * PI;
-
-	if (angle < PI/2)
-		return (1);
-	else if (angle < PI)
-		return (2);
-	else if (angle < 3 * PI / 2)
-		return (3);
-	return (4);
-}
-
-// calculates neearest recatangle paints coordinates and returns from what side of line is it
-int	near_angle(int quarter, float start_x, float start_y, float end_x, float end_y, float *px, float *py)
-{
-	int		px_coefficent;
-	int		py_coefficent;
-
-	if (quarter == 1)
-	{
-		px_coefficent = 0;
-		py_coefficent = 0;
-	}
-	else if (quarter == 2)
-	{
-		px_coefficent = 1;
-		py_coefficent = 0;
-	}
-	else if (quarter == 3)
-	{
-		px_coefficent = 1;
+		draw_bullet_holes(game);
+		draw_enemies(game);
+		draw_shoot(game);
+		draw_gun(game);
+		draw_minimap(game);
+		draw_fps(game, &last_time, &frames);
+		mlx_put_image_to_window(game->mlx, game->win, game->img, 0, 0);
+		draw_life(game);
+		return (0);
 		py_coefficent = 1;
 	}
 	else
@@ -123,7 +79,8 @@ int	near_angle(int quarter, float start_x, float start_y, float end_x, float end
 	}
 	*px = ((int)(end_x / BLOCK_SIZE) + px_coefficent) * BLOCK_SIZE;
 	*py = ((int)(end_y / BLOCK_SIZE) + py_coefficent) * BLOCK_SIZE;
-	return ((end_x - start_x) * (*py - start_y) - (end_y - start_y) * (*px - start_x));
+	return ((end_x - start_x) * (*py - start_y)
+		- (end_y - start_y) * (*px - start_x));
 }
 
 t_direction	wall_direction(int quarter, int side)
@@ -206,30 +163,82 @@ void	lines_intersection_point(float x1, float y1, float x2, float y2,
     *y = y1 + u * (y2 - y1);
 }
 
-void	draw_ceiling_floor(t_game *game, int x, float height)
+void    render_floor_and_ceiling(t_game *game)
 {
-	int		y;
-	int		wall_start;
+    float   dir_x = cos(game->player->angle);
+    float   dir_y = sin(game->player->angle);
+    // Plane represents the "width" of the camera sensor
+    float   plane_x = -dir_y * tan(PI / 6.0f); 
+    float   plane_y = dir_x * tan(PI / 6.0f);
+    int     y;
 
-	y = 0;
-	wall_start = (HEIGHT - height) / 2;
-	while (y < wall_start)
-	{
-		put_pixel(x, y, *game->config.ceiling_color, game);
-		y++;
-	}
-	y = wall_start + height;
-	while (y < HEIGHT)
-	{
-		put_pixel(x, y, *game->config.floor_color, game);
-		y++;
-	}
+    // We only need to loop through the bottom half of the screen
+    y = HEIGHT / 2;
+    while (++y < HEIGHT)
+    {
+        // Ray vectors for the edges of the FOV
+        float ray_dir0_x = dir_x - plane_x;
+        float ray_dir0_y = dir_y - plane_y;
+        float ray_dir1_x = dir_x + plane_x;
+        float ray_dir1_y = dir_y + plane_y;
+
+        // Distance from the horizon to the current row
+        int p = y - HEIGHT / 2;
+        // Camera height (0.5 means middle of the block)
+        float pos_z = 0.5 * HEIGHT;
+        // Horizontal distance from player to the floor row
+        float row_dist = pos_z / p;
+
+        // How much the world coordinate changes for each horizontal pixel
+        float step_x = row_dist * (ray_dir1_x - ray_dir0_x) / WIDTH;
+        float step_y = row_dist * (ray_dir1_y - ray_dir0_y) / WIDTH;
+
+        // Starting world coordinates at the far left of the current row
+        // We divide by BLOCK_SIZE to get the grid-relative position
+        float world_x = (game->player->x / (float)BLOCK_SIZE) + row_dist * ray_dir0_x;
+        float world_y = (game->player->y / (float)BLOCK_SIZE) + row_dist * ray_dir0_y;
+
+        int x = -1;
+        while (++x < WIDTH)
+        {
+            // Floor casting often creates negative coordinates; 
+            // we use floorf to ensure we always get a positive fraction for the texture
+            float fx = world_x - floorf(world_x);
+            float fy = world_y - floorf(world_y);
+
+            // Map the fraction (0.0 to 1.0) to the texture dimensions
+            int tx = (int)(fx * (game->floor_texture.width));
+            int ty = (int)(fy * (game->floor_texture.height));
+
+            // Clamp to avoid out-of-bounds due to precision errors
+            tx = (tx < 0) ? 0 : (tx >= game->floor_texture.width ? game->floor_texture.width - 1 : tx);
+            ty = (ty < 0) ? 0 : (ty >= game->floor_texture.height ? game->floor_texture.height - 1 : ty);
+
+            t_color floor_c;
+            t_color ceil_c;
+
+            if (game->floor_texture.img)
+                floor_c = get_texture_pixel_by_pos(game->floor_texture, tx, ty);
+            else
+                floor_c = *game->config.floor_color;
+
+            if (game->ceiling_texture.img)
+                ceil_c = get_texture_pixel_by_pos(game->ceiling_texture, tx, ty);
+            else
+                ceil_c = *game->config.ceiling_color;
+
+            put_pixel(x, y, floor_c, game);
+            put_pixel(x, HEIGHT - y - 1, ceil_c, game);
+
+            world_x += step_x;
+            world_y += step_y;
+        }
+    }
 }
 
 t_color	get_texture_pixel(t_texture texture, float x_coefficient, float y_coefficient)
 {
 	t_color	color_rgb;
-	int		color_hex;
 	int		x;
 	int		y;
 
@@ -248,13 +257,7 @@ t_color	get_texture_pixel(t_texture texture, float x_coefficient, float y_coeffi
 		y = 0;
 	if (y >= texture.height)
 		y = texture.height - 1;
-
-	color_hex = *(int *)(texture.addr + (y * texture.line_len + x * (texture.bpp / 8)));
-	
-	color_rgb.blue = (color_hex >> 16) & 0xFF;
-	color_rgb.green = (color_hex >> 8) & 0xFF;
-	color_rgb.red = color_hex & 0xFF;
-
+	color_rgb = get_texture_pixel_by_pos(texture, x, y);
 	return (color_rgb);
 }
 
@@ -342,7 +345,6 @@ void	draw_line(t_player *player, t_game *game, float angle, int x)
 	dist = fixed_dist(player->x, player->y, ray_x, ray_y, game);
 	game->wall_dist[x] = dist;
 	height = (BLOCK_SIZE / dist) * (WIDTH / 2);
-	draw_ceiling_floor(game, x, height);
 	draw_walls(game, x, height, direction, ray_x, ray_y);
 }
 
@@ -359,6 +361,7 @@ void	draw_fps(t_game *game, long *last_time, int *frames)
 	long	now_time;
 	char	*fps_str;
 
+	(void)game;
 	now_time = current_time_ms();
 	(*frames)++;
 	if (now_time - *last_time >= 1000)
@@ -378,7 +381,6 @@ void	draw_gun(t_game *game)
 	int		y_off;
 	int		x;
 	int		y;
-	int		color_hex;
 	t_color	color;
 
 	tex = game->gun_texture;
@@ -393,10 +395,7 @@ void	draw_gun(t_game *game)
 		x = 0;
 		while (x < tex.width)
 		{
-			color_hex = *(int *)(tex.addr + (y * tex.line_len + x * (tex.bpp / 8)));
-			color.blue = (color_hex >> 16) & 0xFF;
-			color.green = (color_hex >> 8) & 0xFF;
-			color.red = color_hex & 0xFF;
+			color = get_texture_pixel_by_pos(tex, x, y);
 			/* skip fully transparent pixels if present (None in XPM usually comes as 0) */
 			if (!(color.red == 0 && color.green == 0 && color.blue == 0))
 				put_pixel(x_off + x, y_off + y, color, game);
@@ -428,8 +427,6 @@ static void	draw_bullet_hole(t_game *game, float hole_x, float hole_y)
 	int		size;
 	int		center_x;
 	int		center_y;
-	int		x;
-	int		y;
 	int		dx;
 	int		dy;
 
@@ -487,34 +484,94 @@ static void	draw_life(t_game *game)
 
 int	draw_loop(t_game *game)
 {
-	static long	last_time = 0;
-    static int	frames = 0;
-	float		fraction;
-	float		start_x;
-	int			i;
+	float	dir_x;
+	float	dir_y;
+	float	plane_x;
+	float	plane_y;
+	int		y;
 
-	ft_bzero(game->data, HEIGHT * game->size_line);
-	move_player(game->player, game);
-	update_enemies(game);
-	update_shoot(game->player, game);
-	// draw_square(game->player->x, game->player->y, 15, (t_color){0, 255, 0}, game);
-	// draw_map(game);
-	fraction = PI / 3 / WIDTH;
-	start_x = game->player->angle - PI / 6;
-	i = 0;
-	while (i < WIDTH)
+	dir_x = cos(game->player->angle);
+	dir_y = sin(game->player->angle);
+	plane_x = -dir_y * tan(PI / 6.0f);
+	plane_y = dir_x * tan(PI / 6.0f);
+	y = HEIGHT / 2;
+	while (++y < HEIGHT)
 	{
-		draw_line(game->player, game, start_x, i);
-		start_x += fraction;
-		i++;
+		float	ray_dir0_x;
+		float	ray_dir0_y;
+		float	ray_dir1_x;
+		float	ray_dir1_y;
+		int		p;
+		float	pos_z;
+		float	row_dist;
+		float	step_x;
+		float	step_y;
+		float	world_x;
+		float	world_y;
+		int		x;
+
+		ray_dir0_x = dir_x - plane_x;
+		ray_dir0_y = dir_y - plane_y;
+		ray_dir1_x = dir_x + plane_x;
+		ray_dir1_y = dir_y + plane_y;
+		p = y - HEIGHT / 2;
+		pos_z = 0.5f * HEIGHT;
+		row_dist = pos_z / p;
+		step_x = row_dist * (ray_dir1_x - ray_dir0_x) / WIDTH;
+		step_y = row_dist * (ray_dir1_y - ray_dir0_y) / WIDTH;
+		world_x = (game->player->x / (float)BLOCK_SIZE) + row_dist * ray_dir0_x;
+		world_y = (game->player->y / (float)BLOCK_SIZE) + row_dist * ray_dir0_y;
+		x = -1;
+		while (++x < WIDTH)
+		{
+			float	fx;
+			float	fy;
+			int		floor_tx;
+			int		floor_ty;
+			int		ceil_tx;
+			int		ceil_ty;
+			t_color	floor_c;
+			t_color	ceil_c;
+
+			fx = world_x - floorf(world_x);
+			fy = world_y - floorf(world_y);
+			floor_tx = (int)(fx * game->floor_texture.width);
+			floor_ty = (int)(fy * game->floor_texture.height);
+			if (floor_tx < 0)
+				floor_tx = 0;
+			if (floor_ty < 0)
+				floor_ty = 0;
+			if (game->floor_texture.width > 0
+				&& floor_tx >= game->floor_texture.width)
+				floor_tx = game->floor_texture.width - 1;
+			if (game->floor_texture.height > 0
+				&& floor_ty >= game->floor_texture.height)
+				floor_ty = game->floor_texture.height - 1;
+			ceil_tx = (int)(fx * game->ceiling_texture.width);
+			ceil_ty = (int)(fy * game->ceiling_texture.height);
+			if (ceil_tx < 0)
+				ceil_tx = 0;
+			if (ceil_ty < 0)
+				ceil_ty = 0;
+			if (game->ceiling_texture.width > 0
+				&& ceil_tx >= game->ceiling_texture.width)
+				ceil_tx = game->ceiling_texture.width - 1;
+			if (game->ceiling_texture.height > 0
+				&& ceil_ty >= game->ceiling_texture.height)
+				ceil_ty = game->ceiling_texture.height - 1;
+			if (game->floor_texture.img)
+				floor_c = get_texture_pixel_by_pos(game->floor_texture,
+					floor_tx, floor_ty);
+			else
+				floor_c = *game->config.floor_color;
+			if (game->ceiling_texture.img)
+				ceil_c = get_texture_pixel_by_pos(game->ceiling_texture,
+					ceil_tx, ceil_ty);
+			else
+				ceil_c = *game->config.ceiling_color;
+			put_pixel(x, y, floor_c, game);
+			put_pixel(x, HEIGHT - y - 1, ceil_c, game);
+			world_x += step_x;
+			world_y += step_y;
+		}
 	}
-	draw_bullet_holes(game);
-	draw_enemies(game);
-	draw_shoot(game);
-	draw_gun(game);
-	draw_minimap(game);
-	draw_fps(game, &last_time, &frames);
-	mlx_put_image_to_window(game->mlx, game->win, game->img, 0, 0);
-	draw_life(game);
-	return (0);
-}

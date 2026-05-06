@@ -31,6 +31,8 @@ void	try_open_door(t_game *game)
 	float	dx;
 	float	dy;
 	float	dist;
+	int		map_x;
+	int		map_y;
 
 	i = 0;
 	while (i < game->door_count)
@@ -40,7 +42,16 @@ void	try_open_door(t_game *game)
 		dist = sqrt(dx * dx + dy * dy);
 		if (dist <= DOOR_OPEN_DIST)
 		{
-			game->doors[i].open = 1 - game->doors[i].open;
+			if (game->enemies_alive > 0)
+			{
+				printf("Kill all enemies first!\n");
+				return ;
+			}
+			game->doors[i].open = 1;
+			map_x = (int)(game->doors[i].x / BLOCK_SIZE);
+			map_y = (int)(game->doors[i].y / BLOCK_SIZE);
+			if (game->config.map[map_y] && game->config.map[map_y][map_x])
+				game->config.map[map_y][map_x] = '0';
 			return ;
 		}
 		i++;

@@ -90,10 +90,16 @@ void	cheack_config(t_config *config)
 		free_and_exit(config, NULL, ": <west texture> is missing or invalid");
 	if (!config->east_texture)
 		free_and_exit(config, NULL, ": <east texture> is missing or invalid");
-	if (!config->floor_color)
-		free_and_exit(config, NULL, ": <floor color> is missing or invalid");
-	if (!config->ceiling_color)
-		free_and_exit(config, NULL, ": <ceiling color> is missing or invalid");
+	if (!config->floor_color && !config->floor_texture)
+		free_and_exit(config, NULL, ": <floor> color/texture is missing or invalid");
+	if (!config->ceiling_color && !config->ceiling_texture)
+		free_and_exit(config, NULL, ": <ceiling> color/texture is missing or invalid");
+	if (config->floor_texture && !check_file_extension(config->floor_texture,
+			"xpm"))
+		free_and_exit(config, NULL, ": <floor texture> must be .xpm");
+	if (config->ceiling_texture && !check_file_extension(config->ceiling_texture,
+			"xpm"))
+		free_and_exit(config, NULL, ": <ceiling texture> must be .xpm");
 	if (!config->map || check_map(config->map))
 		free_and_exit(config, NULL, ": <map> is missing> or invalid");
 }

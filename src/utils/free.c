@@ -38,6 +38,10 @@ void	free_config(t_config *config)
 		free(config->west_texture);
 	if (config->east_texture)
 		free(config->east_texture);
+	if (config->floor_texture)
+		free(config->floor_texture);
+	if (config->ceiling_texture)
+		free(config->ceiling_texture);
 	if (config->floor_color)
 		free(config->floor_color);
 	if (config->ceiling_color)
@@ -56,6 +60,10 @@ void	free_textures(t_game *game)
 		mlx_destroy_image(game->mlx, game->west_texture.img);
 	if (game->east_texture.img)
 		mlx_destroy_image(game->mlx, game->east_texture.img);
+	if (game->floor_texture.img)
+		mlx_destroy_image(game->mlx, game->floor_texture.img);
+	if (game->ceiling_texture.img)
+		mlx_destroy_image(game->mlx, game->ceiling_texture.img);
 	if (game->gun_texture.img)
 		mlx_destroy_image(game->mlx, game->gun_texture.img);
 	if (game->door_texture.img)
@@ -68,6 +76,14 @@ void	free_textures(t_game *game)
 		mlx_destroy_image(game->mlx, game->zombie3_texture.img);
 	if (game->zombie4_texture.img)
 		mlx_destroy_image(game->mlx, game->zombie4_texture.img);
+	if (game->front_texture.img)
+		mlx_destroy_image(game->mlx, game->front_texture.img);
+	if (game->back_texture.img)
+		mlx_destroy_image(game->mlx, game->back_texture.img);
+	if (game->left_texture.img)
+		mlx_destroy_image(game->mlx, game->left_texture.img);
+	if (game->right_texture.img)
+		mlx_destroy_image(game->mlx, game->right_texture.img);
 }
 
 void	free_all(t_game *game)

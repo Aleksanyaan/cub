@@ -2,13 +2,19 @@
 
 #define ENEMY_HIT_RADIUS 28.0f
 #define FOV (PI / 3.0f)
-#define ENEMY_SPEED 1.4f
+#define ENEMY_SPEED_WALKER 0.7f
+#define ENEMY_SPEED_RUNNER 2.2f
+#define ENEMY_MOVE_FACTOR 0.35f
 #define ENEMY_RADIUS 8
 #define ENEMY_STOP_DIST 28.0f
 #define ENEMY_ANIM_MS 140
-#define ENEMY_SCALE 0.7f
+#define ENEMY_SCALE 0.5f
 #define ENEMY_TOUCH_DAMAGE 5
 #define ENEMY_DAMAGE_COOLDOWN_MS 300
+/* type constants */
+#define ENEMY_WALKER 0
+#define ENEMY_RUNNER 1
+#define ENEMY_STANDING 2
 
 static float	normalize_angle(float angle)
 {
@@ -19,10 +25,23 @@ static float	normalize_angle(float angle)
 	return (angle);
 }
 
-static t_texture	*get_enemy_texture(t_game *game, int enemy_id)
+static t_texture	*get_enemy_texture(t_game *game, t_enemy *enemy, int enemy_id)
 {
 	long	frame;
+	float	rel;
 
+	if (enemy->type == ENEMY_STANDING)
+	{
+		rel = normalize_angle(atan2(game->player->y - enemy->y,
+				game->player->x - enemy->x) - enemy->angle);
+		if (fabs(rel) <= PI / 4.0f)
+			return (&game->front_texture);
+		if (fabs(rel) >= 3.0f * PI / 4.0f)
+			return (&game->back_texture);
+		if (rel > 0)
+			return (&game->left_texture);
+		return (&game->right_texture);
+	}
 	frame = (current_time_ms() / ENEMY_ANIM_MS + enemy_id) % 4;
 	if (frame == 0)
 		return (&game->zombie1_texture);
@@ -46,11 +65,37 @@ void	init_enemies(t_game *game)
 		{
 			if (game->config.map[y][x] == '2' && game->enemy_count < ENEMY_MAX)
 			{
+				game->enemies[game->enemy_count].type = ENEMY_WALKER;
 				game->enemies[game->enemy_count].active = 1;
 				game->enemies[game->enemy_count].x = (x + 0.5f) * BLOCK_SIZE;
 				game->enemies[game->enemy_count].y = (y + 0.5f) * BLOCK_SIZE;
 				game->enemies[game->enemy_count].angle = 0.0f;
 				game->enemy_count++;
+				game->enemies_alive++;
+				game->config.map[y][x] = '0';
+			}
+			else if (game->config.map[y][x] == '3'
+				&& game->enemy_count < ENEMY_MAX)
+			{
+				game->enemies[game->enemy_count].type = ENEMY_RUNNER;
+				game->enemies[game->enemy_count].active = 1;
+				game->enemies[game->enemy_count].x = (x + 0.5f) * BLOCK_SIZE;
+				game->enemies[game->enemy_count].y = (y + 0.5f) * BLOCK_SIZE;
+				game->enemies[game->enemy_count].angle = 0.0f;
+				game->enemy_count++;
+				game->enemies_alive++;
+				game->config.map[y][x] = '0';
+			}
+			else if (game->config.map[y][x] == '4'
+				&& game->enemy_count < ENEMY_MAX)
+			{
+				game->enemies[game->enemy_count].type = ENEMY_STANDING;
+				game->enemies[game->enemy_count].active = 1;
+				game->enemies[game->enemy_count].x = (x + 0.5f) * BLOCK_SIZE;
+				game->enemies[game->enemy_count].y = (y + 0.5f) * BLOCK_SIZE;
+				game->enemies[game->enemy_count].angle = 0.0f;
+				game->enemy_count++;
+				game->enemies_alive++;
 				game->config.map[y][x] = '0';
 			}
 			x++;
@@ -68,15 +113,22 @@ static void	move_enemy(t_game *game, t_enemy *enemy)
 	float	next_y;
 	float	step_x;
 	float	step_y;
+	float	step_scale;
 
+	if (enemy->type == ENEMY_STANDING)
+		return ;
 	dx = game->player->x - enemy->x;
 	dy = game->player->y - enemy->y;
 	dist = sqrt(dx * dx + dy * dy);
 	if (dist <= ENEMY_STOP_DIST)
 		return ;
 	enemy->angle = atan2(dy, dx);
-	step_x = cos(enemy->angle) * ENEMY_SPEED;
-	step_y = sin(enemy->angle) * ENEMY_SPEED;
+	if (enemy->type == ENEMY_RUNNER)
+		step_scale = ENEMY_SPEED_RUNNER * ENEMY_MOVE_FACTOR * game->frame_scale;
+	else
+		step_scale = ENEMY_SPEED_WALKER * ENEMY_MOVE_FACTOR * game->frame_scale;
+	step_x = cos(enemy->angle) * step_scale;
+	step_y = sin(enemy->angle) * step_scale;
 	next_x = enemy->x + step_x;
 	next_y = enemy->y + step_y;
 
@@ -161,7 +213,7 @@ static void	draw_enemy(t_game *game, t_enemy *enemy, int enemy_id)
 	corrected_dist = dist * cos(delta);
 	if (corrected_dist <= 0.001f)
 		return ;
-	tex = get_enemy_texture(game, enemy_id);
+	tex = get_enemy_texture(game, enemy, enemy_id);
 	sprite_h = (int)(((BLOCK_SIZE / corrected_dist) * (WIDTH / 2.0f)) * ENEMY_SCALE);
 	if (sprite_h <= 0)
 		return ;
@@ -202,15 +254,57 @@ static void	draw_enemy(t_game *game, t_enemy *enemy, int enemy_id)
 	}
 }
 
+static int	cmp_enemy_dist(t_game *game, int a, int b)
+{
+	float	dxa;
+	float	dya;
+	float	dxb;
+	float	dyb;
+
+	dxa = game->enemies[a].x - game->player->x;
+	dya = game->enemies[a].y - game->player->y;
+	dxb = game->enemies[b].x - game->player->x;
+	dyb = game->enemies[b].y - game->player->y;
+	return ((dxa * dxa + dya * dya) > (dxb * dxb + dyb * dyb));
+}
+
 void	draw_enemies(t_game *game)
 {
-	int	i;
+	int		order[ENEMY_MAX];
+	int		count;
+	int		i;
+	int		j;
+	int		tmp;
 
+	count = 0;
 	i = 0;
 	while (i < game->enemy_count)
 	{
 		if (game->enemies[i].active)
-			draw_enemy(game, &game->enemies[i], i);
+			order[count++] = i;
+		i++;
+	}
+	/* bubble sort: farthest (largest dist²) first */
+	i = 0;
+	while (i < count - 1)
+	{
+		j = 0;
+		while (j < count - 1 - i)
+		{
+			if (!cmp_enemy_dist(game, order[j], order[j + 1]))
+			{
+				tmp = order[j];
+				order[j] = order[j + 1];
+				order[j + 1] = tmp;
+			}
+			j++;
+		}
+		i++;
+	}
+	i = 0;
+	while (i < count)
+	{
+		draw_enemy(game, &game->enemies[order[i]], order[i]);
 		i++;
 	}
 }
@@ -231,6 +325,8 @@ int	hit_enemy(float x, float y, t_game *game)
 			if (dx * dx + dy * dy <= ENEMY_HIT_RADIUS * ENEMY_HIT_RADIUS)
 			{
 				game->enemies[i].active = 0;
+				if (game->enemies_alive > 0)
+					game->enemies_alive--;
 				return (1);
 			}
 		}

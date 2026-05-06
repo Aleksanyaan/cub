@@ -12,6 +12,8 @@
 
 #include "../includes/cub3d.h"
 
+#define PLAYER_MOVE_FACTOR 0.35
+
 void	init_player(t_player *player)
 {
 	player->x = WIDTH / 2;
@@ -42,7 +44,7 @@ int	key_press(int keycode, t_game *game)
 		game->player->right_rotate = 1;
 	if (keycode == SPACE)
 		shoot_player(game->player);
-	if (keycode == E)
+	if (keycode == ENTER)
 		try_open_door(game);
 	if (keycode == ESC)
 		close_window(game);
@@ -66,11 +68,11 @@ int	key_release(int keycode, t_game *game)
 	return (0);
 }
 
-void	rotate_palyer(t_player *player)
+void	rotate_palyer(t_player *player, t_game *game)
 {
 	float	angle_speed;
 
-	angle_speed = 0.03;
+	angle_speed = 0.03f * game->frame_scale;
 	if (player->left_rotate)
 		player->angle -= angle_speed;
 	if (player->right_rotate)
@@ -83,43 +85,75 @@ void	rotate_palyer(t_player *player)
 
 void	move_player(t_player *player, t_game *game)
 {
-	double	new_x;
-	double	new_y;
-	double	cos_angle;
-	double	sin_angle;
+	double	move_x;
+	double	move_y;
+	double	move_len;
+	double	step_x;
+	double	step_y;
+	double	next_x;
+	double	next_y;
+	double	move_speed;
+	int		steps;
+	int		i;
 
-	rotate_palyer(player);
-	cos_angle = cos(player->angle);
-	sin_angle = sin(player->angle);
-	new_x = player->x;
-	new_y = player->y;
+	rotate_palyer(player, game);
+	move_x = 0;
+	move_y = 0;
+	move_speed = MOVE_SPEED * game->frame_scale * PLAYER_MOVE_FACTOR;
 
 	if (player->key_up)
 	{
-		new_x += cos_angle * MOVE_SPEED;
-		new_y += sin_angle * MOVE_SPEED;
+		move_x += cos(player->angle) * move_speed;
+		move_y += sin(player->angle) * move_speed;
 	}
 	if (player->key_down)
 	{
-		new_x -= cos_angle * MOVE_SPEED;
-		new_y -= sin_angle * MOVE_SPEED;
+		move_x -= cos(player->angle) * move_speed;
+		move_y -= sin(player->angle) * move_speed;
 	}
 	if (player->key_right)
 	{
-		new_x += -sin_angle * MOVE_SPEED;
-		new_y += cos_angle * MOVE_SPEED;
+		move_x += -sin(player->angle) * move_speed;
+		move_y += cos(player->angle) * move_speed;
 	}
 	if (player->key_left)
 	{
-		new_x += sin_angle * MOVE_SPEED;
-		new_y += -cos_angle * MOVE_SPEED;
+		move_x += sin(player->angle) * move_speed;
+		move_y += -cos(player->angle) * move_speed;
 	}
 
-	if (!is_wall(new_x + PLAYER_RADIUS, player->y, game)
-		&& !is_wall(new_x - PLAYER_RADIUS, player->y, game))
-		player->x = new_x;
-
-	if (!is_wall(player->x, new_y + PLAYER_RADIUS, game)
-		&& !is_wall(player->x, new_y - PLAYER_RADIUS, game))
-		player->y = new_y;
+	move_len = sqrt(move_x * move_x + move_y * move_y);
+	if (move_len <= 0)
+		return ;
+	if (move_len > move_speed)
+	{
+		move_x = (move_x / move_len) * move_speed;
+		move_y = (move_y / move_len) * move_speed;
+	}
+	steps = (int)ceil(fmax(fabs(move_x), fabs(move_y)));
+	if (steps < 1)
+		steps = 1;
+	step_x = move_x / steps;
+	step_y = move_y / steps;
+	i = 0;
+	while (i < steps)
+	{
+		next_x = player->x + step_x;
+		next_y = player->y + step_y;
+		if (!is_circle_colliding_with_wall(next_x, next_y, PLAYER_RADIUS, game))
+		{
+			player->x = next_x;
+			player->y = next_y;
+		}
+		else
+		{
+			if (!is_circle_colliding_with_wall(next_x, player->y,
+					PLAYER_RADIUS, game))
+				player->x = next_x;
+			if (!is_circle_colliding_with_wall(player->x, next_y,
+					PLAYER_RADIUS, game))
+				player->y = next_y;
+		}
+		i++;
+	}
 }

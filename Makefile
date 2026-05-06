@@ -1,5 +1,9 @@
 CC			=	cc
-FLAGS		=	-g -fsanitize=address #-Wall -Wextra -Werror
+FLAGS		=	-O2 -Wall -Wextra -Werror
+
+ifdef DEBUG
+FLAGS		+=	-g -fsanitize=address
+endif
 
 OBJ_DIR		=	src/obj
 INCLUDES	=	includes

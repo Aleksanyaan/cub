@@ -26,7 +26,7 @@ char	**parse_map(char **config_text, int start)
 	while (config_text[start + i])
 	{
 		if (config_text[start + i][0] == '\n'
-			|| !ft_str_only(config_text[start + i], " \n102NWESD"))
+			|| !ft_str_only(config_text[start + i], " \n10234NWESD"))
 		{
 			free_string_array(map);
 			return (NULL);
@@ -52,6 +52,31 @@ int	parse_textures(char *info, t_config *config)
 	return (1);
 }
 
+static int	parse_floor_ceiling(char *info, t_config *config)
+{
+	char	*value;
+
+	if (ft_strnstr(info, "F", 1) == info)
+	{
+		value = ft_strtrim(info + 1, " \n");
+		if (ft_strchr(value, ','))
+			config->floor_color = parse_color(value);
+		else
+			config->floor_texture = value;
+		return (1);
+	}
+	if (ft_strnstr(info, "C", 1) == info)
+	{
+		value = ft_strtrim(info + 1, " \n");
+		if (ft_strchr(value, ','))
+			config->ceiling_color = parse_color(value);
+		else
+			config->ceiling_texture = value;
+		return (1);
+	}
+	return (0);
+}
+
 int	parse_config(char **config_text, t_config *config)
 {
 	int		i;
@@ -63,11 +88,9 @@ int	parse_config(char **config_text, t_config *config)
 		info = config_text[i];
 		if (info[0] == '\n' || parse_textures(info, config))
 			;
-		else if (ft_strnstr(info, "F", 1) == info)
-			config->floor_color = parse_color(ft_strtrim(info + 1, " \n"));
-		else if (ft_strnstr(info, "C", 1) == info)
-			config->ceiling_color = parse_color(ft_strtrim(info + 1, " \n"));
-		else if (ft_str_only(info, " \n102NWESD"))
+		else if (parse_floor_ceiling(info, config))
+			;
+		else if (ft_str_only(info, " \n10234NWESD"))
 		{
 			config->map = parse_map(config_text, i);
 			break ;
@@ -83,6 +106,8 @@ t_config	parse(char *path)
 {
 	char		**config_text;
 	t_config	config;
+
+	ft_bzero(&config, sizeof(config));
 
 	if (!check_file_extension(path, "cub"))
 		exit_with_error(": configuration's extension must be .cub");

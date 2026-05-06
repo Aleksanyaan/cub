@@ -12,6 +12,15 @@
 
 #include "../includes/cub3d.h"
 
+void	check_player_death(t_game *game)
+{
+	if (game->life > 0)
+		return ;
+	printf("GAME OVER\n");
+	free_all(game);
+	exit(0);
+}
+
 int	close_window(t_game *game)
 {
 	if (!game)
@@ -31,6 +40,8 @@ void	init_struct(t_game *game)
 	game->south_texture.img = NULL;
 	game->west_texture.img = NULL;
 	game->east_texture.img = NULL;
+	game->floor_texture.img = NULL;
+	game->ceiling_texture.img = NULL;
 	game->gun_texture.img = NULL;
 	ft_bzero(&game->door_texture, sizeof(game->door_texture));
 	game->door_texture.img = NULL;
@@ -38,13 +49,19 @@ void	init_struct(t_game *game)
 	game->zombie2_texture.img = NULL;
 	game->zombie3_texture.img = NULL;
 	game->zombie4_texture.img = NULL;
+	game->front_texture.img = NULL;
+	game->back_texture.img = NULL;
+	game->left_texture.img = NULL;
+	game->right_texture.img = NULL;
 	ft_bzero(game->bullet_holes, sizeof(game->bullet_holes));
 	ft_bzero(game->enemies, sizeof(game->enemies));
 	ft_bzero(game->doors, sizeof(game->doors));
 	ft_bzero(game->wall_dist, sizeof(game->wall_dist));
 	game->bullet_hole_index = 0;
 	game->enemy_count = 0;
+	game->enemies_alive = 0;
 	game->door_count = 0;
+	game->frame_scale = 1.0;
 	game->life = 100;
 	game->last_damage_time = 0;
 	game->bpp = 0;
@@ -123,6 +140,38 @@ void	read_texture(t_game *game)
 	south->addr = mlx_get_data_addr(south->img, &south->bpp, &south->line_len, &south->endian);
 	west->addr = mlx_get_data_addr(west->img, &west->bpp, &west->line_len, &west->endian);
 	east->addr = mlx_get_data_addr(east->img, &east->bpp, &east->line_len, &east->endian);
+	if (game->config.floor_texture)
+	{
+		game->floor_texture.img = mlx_xpm_file_to_image(game->mlx,
+				game->config.floor_texture, &game->floor_texture.width,
+				&game->floor_texture.height);
+		if (!game->floor_texture.img)
+		{
+			fprintf(stderr, "Failed to load texture: %s\n",
+				game->config.floor_texture);
+			free_all(game);
+			exit_with_error(": loading floor texture\n");
+		}
+		game->floor_texture.addr = mlx_get_data_addr(game->floor_texture.img,
+				&game->floor_texture.bpp, &game->floor_texture.line_len,
+				&game->floor_texture.endian);
+	}
+	if (game->config.ceiling_texture)
+	{
+		game->ceiling_texture.img = mlx_xpm_file_to_image(game->mlx,
+				game->config.ceiling_texture, &game->ceiling_texture.width,
+				&game->ceiling_texture.height);
+		if (!game->ceiling_texture.img)
+		{
+			fprintf(stderr, "Failed to load texture: %s\n",
+				game->config.ceiling_texture);
+			free_all(game);
+			exit_with_error(": loading ceiling texture\n");
+		}
+		game->ceiling_texture.addr = mlx_get_data_addr(
+				game->ceiling_texture.img, &game->ceiling_texture.bpp,
+				&game->ceiling_texture.line_len, &game->ceiling_texture.endian);
+	}
 	if (gun->img)
 		gun->addr = mlx_get_data_addr(gun->img, &gun->bpp, &gun->line_len, &gun->endian);
 	if (game->door_texture.img)
@@ -131,6 +180,10 @@ void	read_texture(t_game *game)
 	load_enemy_texture(game, &game->zombie2_texture, "textures/zombie2.xpm");
 	load_enemy_texture(game, &game->zombie3_texture, "textures/zombie3.xpm");
 	load_enemy_texture(game, &game->zombie4_texture, "textures/zombie4.xpm");
+	load_enemy_texture(game, &game->front_texture, "textures/front.xpm");
+	load_enemy_texture(game, &game->back_texture, "textures/back.xpm");
+	load_enemy_texture(game, &game->left_texture, "textures/left.xpm");
+	load_enemy_texture(game, &game->right_texture, "textures/right.xpm");
 }
 
 void	init_game(t_game *game, t_config config)

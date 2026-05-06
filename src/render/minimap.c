@@ -242,6 +242,7 @@ void	draw_minimap(t_game *game)
 		y++;
 	}
 	
+	draw_minimap_border(game);
 	draw_minimap_enemies(game, camera_offset_x, camera_offset_y);
 	draw_minimap_player(game, camera_offset_x, camera_offset_y);
 }
