@@ -26,7 +26,7 @@ char	**parse_map(char **config_text, int start)
 	while (config_text[start + i])
 	{
 		if (config_text[start + i][0] == '\n'
-			|| !ft_str_only(config_text[start + i], " \n10234NWESD"))
+			|| !ft_str_only(config_text[start + i], " \n1023456NWESD"))
 		{
 			free_string_array(map);
 			return (NULL);
@@ -90,7 +90,7 @@ int	parse_config(char **config_text, t_config *config)
 			;
 		else if (parse_floor_ceiling(info, config))
 			;
-		else if (ft_str_only(info, " \n10234NWESD"))
+		else if (ft_str_only(info, " \n1023456NWESD"))
 		{
 			config->map = parse_map(config_text, i);
 			break ;

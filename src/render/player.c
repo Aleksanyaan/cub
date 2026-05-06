@@ -14,6 +14,29 @@
 
 #define PLAYER_MOVE_FACTOR 0.35
 
+static void	collect_pickup(t_game *game)
+{
+	int		map_x;
+	int		map_y;
+	char	cell;
+
+	map_x = (int)(game->player->x / BLOCK_SIZE);
+	map_y = (int)(game->player->y / BLOCK_SIZE);
+	if (map_y < 0 || !game->config.map[map_y] || map_x < 0
+		|| !game->config.map[map_y][map_x])
+		return ;
+	cell = game->config.map[map_y][map_x];
+	if (cell == '5')
+		game->life += 10;
+	else if (cell == '6')
+		game->life += 15;
+	else
+		return ;
+	if (game->life > 100)
+		game->life = 100;
+	game->config.map[map_y][map_x] = '0';
+}
+
 void	init_player(t_player *player)
 {
 	player->x = WIDTH / 2;
@@ -156,4 +179,5 @@ void	move_player(t_player *player, t_game *game)
 		}
 		i++;
 	}
+	collect_pickup(game);
 }

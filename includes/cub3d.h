@@ -147,6 +147,8 @@ typedef struct s_game
 	t_texture	zombie2_texture;
 	t_texture	zombie3_texture;
 	t_texture	zombie4_texture;
+	t_texture	fit_texture;
+	t_texture	kit_texture;
 	t_texture	front_texture;
 	t_texture	back_texture;
 	t_texture	left_texture;
@@ -198,6 +200,7 @@ void			shoot_player(t_player *player);
 void			update_shoot(t_player *player, t_game *game);
 void			draw_shoot(t_game *game);
 void			draw_bullet_holes(t_game *game);
+void			draw_pickups(t_game *game);
 void			init_enemies(t_game *game);
 void		init_doors(t_game *game);
 void		update_doors(t_game *game);

@@ -76,6 +76,10 @@ void	free_textures(t_game *game)
 		mlx_destroy_image(game->mlx, game->zombie3_texture.img);
 	if (game->zombie4_texture.img)
 		mlx_destroy_image(game->mlx, game->zombie4_texture.img);
+	if (game->fit_texture.img)
+		mlx_destroy_image(game->mlx, game->fit_texture.img);
+	if (game->kit_texture.img)
+		mlx_destroy_image(game->mlx, game->kit_texture.img);
 	if (game->front_texture.img)
 		mlx_destroy_image(game->mlx, game->front_texture.img);
 	if (game->back_texture.img)

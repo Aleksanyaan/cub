@@ -49,6 +49,8 @@ void	init_struct(t_game *game)
 	game->zombie2_texture.img = NULL;
 	game->zombie3_texture.img = NULL;
 	game->zombie4_texture.img = NULL;
+	game->fit_texture.img = NULL;
+	game->kit_texture.img = NULL;
 	game->front_texture.img = NULL;
 	game->back_texture.img = NULL;
 	game->left_texture.img = NULL;
@@ -180,6 +182,8 @@ void	read_texture(t_game *game)
 	load_enemy_texture(game, &game->zombie2_texture, "textures/zombie2.xpm");
 	load_enemy_texture(game, &game->zombie3_texture, "textures/zombie3.xpm");
 	load_enemy_texture(game, &game->zombie4_texture, "textures/zombie4.xpm");
+	load_enemy_texture(game, &game->fit_texture, "textures/fit.xpm");
+	load_enemy_texture(game, &game->kit_texture, "textures/kit.xpm");
 	load_enemy_texture(game, &game->front_texture, "textures/front.xpm");
 	load_enemy_texture(game, &game->back_texture, "textures/back.xpm");
 	load_enemy_texture(game, &game->left_texture, "textures/left.xpm");
