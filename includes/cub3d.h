@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   cub3d.h                                            :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: pargev <pargev@student.42.fr>              +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/01/25 15:21:14 by pargev            #+#    #+#             */
-/*   Updated: 2026/05/06 00:00:00 by copilot          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef CUB3D_H
 # define CUB3D_H
 
@@ -252,5 +240,8 @@ int				is_circle_colliding_with_wall(double x, double y, double radius,
 int			is_door_blocking(double x, double y, t_game *game);
 t_door		*get_door_at_map_pos(int map_x, int map_y, t_game *game);
 void		try_open_door(t_game *game);
+
+// Event handling
+int handle_close(void *param);
 
 #endif

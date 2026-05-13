@@ -246,3 +246,8 @@ void	draw_minimap(t_game *game)
 	draw_minimap_enemies(game, camera_offset_x, camera_offset_y);
 	draw_minimap_player(game, camera_offset_x, camera_offset_y);
 }
+
+void setup_hooks(t_game *game)
+{
+    mlx_hook(game->win, 17, 0, handle_close, game);
+}

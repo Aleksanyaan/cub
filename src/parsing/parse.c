@@ -121,3 +121,11 @@ t_config	parse(char *path)
 	cheack_config(&config);
 	return (config);
 }
+
+int handle_close(void *param)
+{
+    t_game *game = (t_game *)param;
+    free_all(game);
+    exit(0);
+    return (0);
+}
