@@ -16,9 +16,7 @@ void	check_player_death(t_game *game)
 {
 	if (game->life > 0)
 		return ;
-	printf("GAME OVER\n");
-	free_all(game);
-	exit(0);
+	game->current_state = STATE_LOSE;
 }
 
 int	close_window(t_game *game)
@@ -31,6 +29,8 @@ int	close_window(t_game *game)
 
 void	init_struct(t_game *game)
 {
+	int	i;
+
 	game->mlx = NULL;
 	game->win = NULL;
 	game->img = NULL;
@@ -43,6 +43,18 @@ void	init_struct(t_game *game)
 	game->floor_texture.img = NULL;
 	game->ceiling_texture.img = NULL;
 	game->gun_texture.img = NULL;
+	game->win_img = NULL;
+	game->lose_img = NULL;
+	game->win_w = 0;
+	game->win_h = 0;
+	game->lose_w = 0;
+	game->lose_h = 0;
+	i = 0;
+	while (i < HEALTH_TEXTURES)
+	{
+		game->health_bars[i] = NULL;
+		i++;
+	}
 	ft_bzero(&game->door_texture, sizeof(game->door_texture));
 	game->door_texture.img = NULL;
 	game->zombie1_texture.img = NULL;
@@ -66,9 +78,36 @@ void	init_struct(t_game *game)
 	game->frame_scale = 1.0;
 	game->life = 100;
 	game->last_damage_time = 0;
+	game->current_state = STATE_PLAYING;
 	game->bpp = 0;
 	game->size_line = 0;
 	game->endian = 0;
+}
+
+void	load_ui_assets(t_game *game)
+{
+	int	w;
+	int	h;
+
+	w = 0;
+	h = 0;
+	game->win_img = mlx_xpm_file_to_image(game->mlx, "textures/win.xpm", &w,
+			&h);
+	game->win_w = w;
+	game->win_h = h;
+	w = 0;
+	h = 0;
+	game->lose_img = mlx_xpm_file_to_image(game->mlx, "textures/lose.xpm", &w,
+			&h);
+	if (!game->lose_img)
+		game->lose_img = mlx_xpm_file_to_image(game->mlx, "textures/lost.xpm",
+				&w, &h);
+	game->lose_w = w;
+	game->lose_h = h;
+	if (!game->win_img)
+		fprintf(stderr, "Warning: failed to load UI texture: textures/win.xpm\n");
+	if (!game->lose_img)
+		fprintf(stderr, "Warning: failed to load UI texture: textures/lose.xpm\n");
 }
 
 static void	load_enemy_texture(t_game *game, t_texture *tex, char *path)
@@ -82,6 +121,87 @@ static void	load_enemy_texture(t_game *game, t_texture *tex, char *path)
 	}
 	tex->addr = mlx_get_data_addr(tex->img, &tex->bpp, &tex->line_len,
 			&tex->endian);
+}
+
+static void	*scale_image_to_max_width(t_game *game, void *src_img, int src_w,
+		int src_h)
+{
+	char	*src_addr;
+	char	*dst_addr;
+	void	*dst_img;
+	int		src_bpp;
+	int		src_line_len;
+	int		src_endian;
+	int		dst_bpp;
+	int		dst_line_len;
+	int		dst_endian;
+	int		dst_w;
+	int		dst_h;
+	int		x;
+	int		y;
+	int		sx;
+	int		sy;
+
+	if (src_w <= 500)
+		return (src_img);
+	dst_w = 500;
+	dst_h = (src_h * dst_w) / src_w;
+	if (dst_h < 1)
+		dst_h = 1;
+	dst_img = mlx_new_image(game->mlx, dst_w, dst_h);
+	if (!dst_img)
+		return (src_img);
+	src_addr = mlx_get_data_addr(src_img, &src_bpp, &src_line_len, &src_endian);
+	dst_addr = mlx_get_data_addr(dst_img, &dst_bpp, &dst_line_len, &dst_endian);
+	if (!src_addr || !dst_addr)
+	{
+		mlx_destroy_image(game->mlx, dst_img);
+		return (src_img);
+	}
+	y = 0;
+	while (y < dst_h)
+	{
+		sy = (y * src_h) / dst_h;
+		x = 0;
+		while (x < dst_w)
+		{
+			sx = (x * src_w) / dst_w;
+			*(int *)(dst_addr + y * dst_line_len + x * (dst_bpp / 8))
+				= *(int *)(src_addr + sy * src_line_len + sx * (src_bpp / 8));
+			x++;
+		}
+		y++;
+	}
+	mlx_destroy_image(game->mlx, src_img);
+	return (dst_img);
+}
+
+void	load_health_bars(t_game *game)
+{
+	int		idx;
+	char	path[64];
+	int		w;
+	int		h;
+	void	*img;
+
+	idx = 0;
+	while (idx < HEALTH_TEXTURES)
+	{
+		snprintf(path, sizeof(path), "textures/health%d.xpm", idx);
+		w = 0;
+		h = 0;
+		img = mlx_xpm_file_to_image(game->mlx, path, &w, &h);
+		if (!img)
+		{
+			fprintf(stderr, "Warning: failed to load HUD health texture: %s\n",
+				path);
+			game->health_bars[idx] = NULL;
+			idx++;
+			continue ;
+		}
+		game->health_bars[idx] = scale_image_to_max_width(game, img, w, h);
+		idx++;
+	}
 }
 
 void	read_texture(t_game *game)
@@ -188,6 +308,8 @@ void	read_texture(t_game *game)
 	load_enemy_texture(game, &game->back_texture, "textures/back.xpm");
 	load_enemy_texture(game, &game->left_texture, "textures/left.xpm");
 	load_enemy_texture(game, &game->right_texture, "textures/right.xpm");
+	load_health_bars(game);
+	load_ui_assets(game);
 }
 
 void	init_game(t_game *game, t_config config)

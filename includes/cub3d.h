@@ -43,6 +43,7 @@
 # define ENEMY_MAX 128
 # define DOOR_MAX 64
 # define DOOR_OPEN_DIST 64.0f
+# define HEALTH_TEXTURES 11
 
 typedef struct s_color
 {
@@ -97,7 +98,17 @@ typedef struct s_enemy
 	float		x;
 	float		y;
 	float		angle;
+	float		last_dist_to_player;
+	long		last_progress_time;
+	int		ghost_mode;
 } 		t_enemy;
+
+typedef enum e_state
+{
+	STATE_PLAYING,
+	STATE_WIN,
+	STATE_LOSE
+} 	t_state;
 
 typedef struct s_door
 {
@@ -143,6 +154,14 @@ typedef struct s_game
 	t_texture	floor_texture;
 	t_texture	ceiling_texture;
 	t_texture	gun_texture;
+	void		*health_bars[HEALTH_TEXTURES];
+	void		*win_img;
+	void		*lose_img;
+	int			win_w;
+	int			win_h;
+	int			lose_w;
+	int			lose_h;
+	t_state		current_state;
 	t_texture	zombie1_texture;
 	t_texture	zombie2_texture;
 	t_texture	zombie3_texture;
@@ -219,6 +238,11 @@ void			draw_map(t_game *game);
 void			render_floor_and_ceiling(t_game *game);
 void			draw_line(t_player *player, t_game *game, float start_x, int i);
 void			draw_minimap(t_game *game);
+void			load_health_bars(t_game *game);
+void			draw_health_bar(t_game *game, int health);
+void			load_ui_assets(t_game *game);
+void			check_victory(t_game *game);
+void			draw_end_screen(t_game *game);
 int				draw_loop(t_game *game);
 void			init_game(t_game *game, t_config config);
 char			**get_map(void);

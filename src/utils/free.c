@@ -52,6 +52,8 @@ void	free_config(t_config *config)
 
 void	free_textures(t_game *game)
 {
+	int	i;
+
 	if (game->north_texture.img)
 		mlx_destroy_image(game->mlx, game->north_texture.img);
 	if (game->south_texture.img)
@@ -66,6 +68,17 @@ void	free_textures(t_game *game)
 		mlx_destroy_image(game->mlx, game->ceiling_texture.img);
 	if (game->gun_texture.img)
 		mlx_destroy_image(game->mlx, game->gun_texture.img);
+	i = 0;
+	while (i < HEALTH_TEXTURES)
+	{
+		if (game->health_bars[i])
+			mlx_destroy_image(game->mlx, game->health_bars[i]);
+		i++;
+	}
+	if (game->win_img)
+		mlx_destroy_image(game->mlx, game->win_img);
+	if (game->lose_img)
+		mlx_destroy_image(game->mlx, game->lose_img);
 	if (game->door_texture.img)
 		mlx_destroy_image(game->mlx, game->door_texture.img);
 	if (game->zombie1_texture.img)

@@ -51,8 +51,25 @@ void	init_player(t_player *player)
 	ft_bzero(player->cartridges, sizeof(player->cartridges));
 }
 
+static void	clear_player_input(t_player *player)
+{
+	player->key_up = 0;
+	player->key_down = 0;
+	player->key_left = 0;
+	player->key_right = 0;
+	player->left_rotate = 0;
+	player->right_rotate = 0;
+}
+
 int	key_press(int keycode, t_game *game)
 {
+	if (keycode == ESC)
+		close_window(game);
+	if (game->current_state != STATE_PLAYING)
+	{
+		clear_player_input(game->player);
+		return (0);
+	}
 	if (keycode == W)
 		game->player->key_up = 1;
 	if (keycode == A)
@@ -69,13 +86,16 @@ int	key_press(int keycode, t_game *game)
 		shoot_player(game->player);
 	if (keycode == ENTER)
 		try_open_door(game);
-	if (keycode == ESC)
-		close_window(game);
 	return (0);
 }
 
 int	key_release(int keycode, t_game *game)
 {
+	if (game->current_state != STATE_PLAYING)
+	{
+		clear_player_input(game->player);
+		return (0);
+	}
 	if (keycode == W)
 		game->player->key_up = 0;
 	if (keycode == A)

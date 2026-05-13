@@ -633,6 +633,55 @@ static void	draw_life(t_game *game)
 	mlx_string_put(game->mlx, game->win, 20, 20, 0x00FF4444, life_text);
 }
 
+void	draw_health_bar(t_game *game, int health)
+{
+	int		idx;
+
+	if (health < 0)
+		idx = 0;
+	else if (health > 100)
+		idx = HEALTH_TEXTURES - 1;
+	else
+		idx = health / 10;
+	if (!game->health_bars[idx])
+	{
+		draw_life(game);
+		return ;
+	}
+	mlx_put_image_to_window(game->mlx, game->win, game->health_bars[idx],
+		20, 20);
+}
+
+void	draw_end_screen(t_game *game)
+{
+	void	*img;
+	int	w;
+	int	h;
+	int	x;
+	int	y;
+
+	img = NULL;
+	w = 0;
+	h = 0;
+	if (game->current_state == STATE_WIN)
+	{
+		img = game->win_img;
+		w = game->win_w;
+		h = game->win_h;
+	}
+	else if (game->current_state == STATE_LOSE)
+	{
+		img = game->lose_img;
+		w = game->lose_w;
+		h = game->lose_h;
+	}
+	if (!img)
+		return ;
+	x = (WIDTH - w) / 2;
+	y = (HEIGHT - h) / 2;
+	mlx_put_image_to_window(game->mlx, game->win, img, x, y);
+}
+
 int	draw_loop(t_game *game)
 {
 	static long	last_time = 0;
@@ -642,10 +691,14 @@ int	draw_loop(t_game *game)
 	int			i;
 
 	ft_bzero(game->data, HEIGHT * game->size_line);
-	move_player(game->player, game);
-	update_enemies(game);
-	check_player_death(game);
-	update_shoot(game->player, game);
+	if (game->current_state == STATE_PLAYING)
+	{
+		move_player(game->player, game);
+		update_enemies(game);
+		check_player_death(game);
+		update_shoot(game->player, game);
+		check_victory(game);
+	}
 	render_floor_and_ceiling(game);
 	fraction = PI / 3 / WIDTH;
 	start_x = game->player->angle - PI / 6;
@@ -664,6 +717,8 @@ int	draw_loop(t_game *game)
 	draw_minimap(game);
 	draw_fps(game, &last_time, &frames);
 	mlx_put_image_to_window(game->mlx, game->win, game->img, 0, 0);
-	draw_life(game);
+	draw_health_bar(game, game->life);
+	if (game->current_state != STATE_PLAYING)
+		draw_end_screen(game);
 	return (0);
 }

@@ -70,6 +70,9 @@ void	init_enemies(t_game *game)
 				game->enemies[game->enemy_count].x = (x + 0.5f) * BLOCK_SIZE;
 				game->enemies[game->enemy_count].y = (y + 0.5f) * BLOCK_SIZE;
 				game->enemies[game->enemy_count].angle = 0.0f;
+				game->enemies[game->enemy_count].last_dist_to_player = 0.0f;
+				game->enemies[game->enemy_count].last_progress_time = 0;
+				game->enemies[game->enemy_count].ghost_mode = 0;
 				game->enemy_count++;
 				game->enemies_alive++;
 				game->config.map[y][x] = '0';
@@ -82,6 +85,9 @@ void	init_enemies(t_game *game)
 				game->enemies[game->enemy_count].x = (x + 0.5f) * BLOCK_SIZE;
 				game->enemies[game->enemy_count].y = (y + 0.5f) * BLOCK_SIZE;
 				game->enemies[game->enemy_count].angle = 0.0f;
+				game->enemies[game->enemy_count].last_dist_to_player = 0.0f;
+				game->enemies[game->enemy_count].last_progress_time = 0;
+				game->enemies[game->enemy_count].ghost_mode = 0;
 				game->enemy_count++;
 				game->enemies_alive++;
 				game->config.map[y][x] = '0';
@@ -94,6 +100,9 @@ void	init_enemies(t_game *game)
 				game->enemies[game->enemy_count].x = (x + 0.5f) * BLOCK_SIZE;
 				game->enemies[game->enemy_count].y = (y + 0.5f) * BLOCK_SIZE;
 				game->enemies[game->enemy_count].angle = 0.0f;
+				game->enemies[game->enemy_count].last_dist_to_player = 0.0f;
+				game->enemies[game->enemy_count].last_progress_time = 0;
+				game->enemies[game->enemy_count].ghost_mode = 0;
 				game->enemy_count++;
 				game->enemies_alive++;
 				game->config.map[y][x] = '0';
@@ -147,6 +156,25 @@ static void	move_enemy(t_game *game, t_enemy *enemy)
 		enemy->y = next_y;
 }
 
+void	check_victory(t_game *game)
+{
+	int	i;
+	int	active_count;
+
+	if (game->current_state != STATE_PLAYING)
+		return ;
+	i = 0;
+	active_count = 0;
+	while (i < game->enemy_count)
+	{
+		if (game->enemies[i].active)
+			active_count++;
+		i++;
+	}
+	if (active_count == 0)
+		game->current_state = STATE_WIN;
+}
+
 void	update_enemies(t_game *game)
 {
 	int	i;
@@ -175,6 +203,8 @@ void	update_enemies(t_game *game)
 		game->life -= ENEMY_TOUCH_DAMAGE;
 		if (game->life < 0)
 			game->life = 0;
+		if (game->life <= 0)
+			game->current_state = STATE_LOSE;
 		game->last_damage_time = now;
 	}
 }
